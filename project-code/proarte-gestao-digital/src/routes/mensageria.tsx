@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, MessageSquare, Users, History, CheckCheck, Check, Clock, Filter as FilterIcon } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { statusList } from "@/lib/mock-data";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/mensageria")({
@@ -17,22 +16,32 @@ export const Route = createFileRoute("/mensageria")({
   component: MensageriaPage,
 });
 
+const statusList = ["EM_ANALISE", "APROVADO", "REPROVADO"];
+const statusLabels: Record<string, string> = {
+  EM_ANALISE: "Em Análise",
+  APROVADO: "Aprovado",
+  REPROVADO: "Rejeitado",
+};
+
 function MensageriaPage() {
-  const { artesaos, feiras, logs, addLog } = useAppStore();
+  const { artesaos, feiras, logs, fetchArtesaos, fetchFeiras, addLog } = useAppStore();
   const [feiraFilter, setFeiraFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("Aprovado");
+  const [statusFilter, setStatusFilter] = useState<string>("APROVADO");
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
 
+  // Carregar dados da API na montagem
+  useEffect(() => {
+    fetchArtesaos();
+    fetchFeiras();
+  }, [fetchArtesaos, fetchFeiras]);
+
   const destinatarios = useMemo(() => {
     let list = artesaos;
-    if (statusFilter !== "all") list = list.filter((a) => a.status === statusFilter);
-    if (feiraFilter !== "all") {
-      const feira = feiras.find((f) => f.id === feiraFilter);
-      if (feira) list = list.filter((a) => feira.alocados.includes(a.id));
-    }
+    if (statusFilter !== "all") list = list.filter((a) => a.statusCuradoria === statusFilter);
+    // Nota: filtro por feira requer dados de alocação — por ora filtra apenas por status
     return list;
-  }, [artesaos, feiras, feiraFilter, statusFilter]);
+  }, [artesaos, statusFilter]);
 
   const handleSend = () => {
     if (!titulo.trim() || !mensagem.trim()) {
@@ -80,7 +89,7 @@ function MensageriaPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
-                    {statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {statusList.map((s) => <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -147,17 +156,21 @@ function MensageriaPage() {
             <h3 className="text-sm font-semibold">Histórico Recente</h3>
           </div>
           <ul className="max-h-[700px] divide-y overflow-y-auto">
-            {logs.map((log) => (
-              <li key={log.id} className="p-3 transition-colors hover:bg-muted/50">
-                <div className="flex items-start justify-between gap-2">
-                  <Badge variant="outline" className={tipoColor(log.tipo)}>{log.tipo}</Badge>
-                  <StatusIcon status={log.status} />
-                </div>
-                <p className="mt-1.5 text-sm font-medium">{log.destinatario}</p>
-                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{log.resumo}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{log.data}</p>
-              </li>
-            ))}
+            {logs.length === 0 ? (
+              <li className="p-6 text-center text-sm text-muted-foreground">Nenhuma mensagem enviada ainda.</li>
+            ) : (
+              logs.map((log) => (
+                <li key={log.id} className="p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="outline" className={tipoColor(log.tipo)}>{log.tipo}</Badge>
+                    <StatusIcon status={log.status} />
+                  </div>
+                  <p className="mt-1.5 text-sm font-medium">{log.destinatario}</p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{log.resumo}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{log.data}</p>
+                </li>
+              ))
+            )}
           </ul>
         </div>
       </div>

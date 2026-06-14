@@ -1,92 +1,239 @@
-// Estado global simples via Zustand-like pattern usando React Context
+/**
+ * Estado global via Zustand — integrado com a API Spring Boot.
+ *
+ * Cada ação chama o api-client e atualiza o estado com a resposta da API.
+ * A leitura de dados é feita via fetch na montagem dos componentes,
+ * e o estado local é atualizado otimisticamente quando possível.
+ */
 import { create } from "zustand";
-import { artesaos as initialArtesaos, feirasIniciais, logsIniciais, type Artesao, type Feira, type MensagemLog, type Status } from "./mock-data";
+import {
+  login as apiLogin,
+  listarArtesaos,
+  listarFeiras,
+  getRankingRodizio,
+  aprovarArtesao as apiAprovarArtesao,
+  rejeitarArtesao as apiRejeitarArtesao,
+  criarFeira as apiCriarFeira,
+  alocarArtesaoNaFeira,
+  setAccessToken,
+  type ArtesaoApi,
+  type FeiraApi,
+  type RodizioRankingItem,
+  type LoginResponse,
+} from "./api-client";
+
+// Tipos para compatibilidade com os componentes existentes
+export type Status = "EM_ANALISE" | "APROVADO" | "REPROVADO";
+
+export interface MensagemLog {
+  id: string;
+  tipo: "Convocação" | "Rejeição" | "Aprovação" | "Comunicado";
+  destinatario: string;
+  resumo: string;
+  data: string;
+  status: "Enviado" | "Entregue" | "Lido";
+}
 
 interface AppState {
+  // Auth
   authenticated: boolean;
   userName: string;
-  artesaos: Artesao[];
-  feiras: Feira[];
+  accessToken: string | null;
+
+  // Data (vem da API)
+  artesaos: ArtesaoApi[];
+  feiras: FeiraApi[];
+  ranking: RodizioRankingItem[];
   logs: MensagemLog[];
-  login: (name: string) => void;
+
+  // Loading states
+  loading: boolean;
+  error: string | null;
+
+  // Auth actions
+  login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
-  updateStatus: (id: string, status: Status, justificativa?: string) => void;
-  addFeira: (f: Omit<Feira, "id" | "vagasOcupadas" | "alocados">) => void;
-  alocar: (feiraId: string, artesaoId: string, artesaoNome: string) => void;
+
+  // Data fetching
+  fetchArtesaos: (filtros?: Record<string, string>) => Promise<void>;
+  fetchFeiras: () => Promise<void>;
+  fetchRanking: (feiraId: string) => Promise<void>;
+
+  // Mutations
+  aprovarArtesao: (id: number) => Promise<void>;
+  rejeitarArtesao: (id: number, justificativa: string) => Promise<void>;
+  addFeira: (f: {
+    nome: string;
+    data: string;
+    local: string;
+    limiteVagas: number;
+  }) => Promise<void>;
+  alocar: (feiraId: string, artesaoId: number) => Promise<void>;
+
+  // Local log (mensageria page — UI-only)
   addLog: (log: Omit<MensagemLog, "id" | "data" | "status">) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
+  // ─── Initial State ──────────────────────────────────────────────────────
   authenticated: false,
   userName: "",
-  artesaos: initialArtesaos,
-  feiras: feirasIniciais,
-  logs: logsIniciais,
-  login: (name) => set({ authenticated: true, userName: name }),
-  logout: () => set({ authenticated: false, userName: "" }),
-  updateStatus: (id, status, justificativa) =>
-    set((s) => {
-      const artesao = s.artesaos.find((a) => a.id === id);
-      const newLogs = [...s.logs];
-      if (artesao) {
-        if (status === "Rejeitado" && justificativa) {
-          newLogs.unshift({
-            id: `MSG-${Date.now()}`,
-            tipo: "Rejeição",
-            destinatario: artesao.nome,
-            resumo: `Inscrição rejeitada: ${justificativa.slice(0, 60)}${justificativa.length > 60 ? "..." : ""}`,
-            data: new Date().toLocaleString("pt-BR"),
-            status: "Enviado",
-          });
-        } else if (status === "Aprovado") {
-          newLogs.unshift({
-            id: `MSG-${Date.now()}`,
-            tipo: "Aprovação",
-            destinatario: artesao.nome,
-            resumo: "Cadastro aprovado no PRODARTE",
-            data: new Date().toLocaleString("pt-BR"),
-            status: "Enviado",
-          });
-        }
-      }
-      return {
-        artesaos: s.artesaos.map((a) => (a.id === id ? { ...a, status } : a)),
-        logs: newLogs,
-      };
-    }),
-  addFeira: (f) =>
+  accessToken: null,
+  artesaos: [],
+  feiras: [],
+  ranking: [],
+  logs: [],
+  loading: false,
+  error: null,
+
+  // ─── Auth ───────────────────────────────────────────────────────────────
+  login: async (email, password) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await apiLogin(email, password);
+      set({
+        authenticated: true,
+        userName: data.nome,
+        accessToken: data.accessToken,
+        loading: false,
+      });
+      return data;
+    } catch (err) {
+      set({ loading: false, error: (err as Error).message });
+      throw err;
+    }
+  },
+
+  logout: () => {
+    setAccessToken(null);
+    set({
+      authenticated: false,
+      userName: "",
+      accessToken: null,
+      artesaos: [],
+      feiras: [],
+      ranking: [],
+    });
+  },
+
+  // ─── Data Fetching ──────────────────────────────────────────────────────
+  fetchArtesaos: async (filtros) => {
+    set({ loading: true, error: null });
+    try {
+      const artesaos = await listarArtesaos(filtros);
+      set({ artesaos, loading: false });
+    } catch (err) {
+      set({ loading: false, error: (err as Error).message });
+    }
+  },
+
+  fetchFeiras: async () => {
+    set({ loading: true, error: null });
+    try {
+      const feiras = await listarFeiras();
+      set({ feiras, loading: false });
+    } catch (err) {
+      set({ loading: false, error: (err as Error).message });
+    }
+  },
+
+  fetchRanking: async (feiraId) => {
+    set({ loading: true, error: null });
+    try {
+      const ranking = await getRankingRodizio(feiraId);
+      set({ ranking, loading: false });
+    } catch (err) {
+      set({ loading: false, error: (err as Error).message });
+    }
+  },
+
+  // ─── Mutations ──────────────────────────────────────────────────────────
+  aprovarArtesao: async (id) => {
+    await apiAprovarArtesao(id);
+    // Atualizar otimisticamente
     set((s) => ({
-      feiras: [
-        ...s.feiras,
-        { ...f, id: `FEIRA-${Date.now()}`, vagasOcupadas: 0, alocados: [] },
-      ],
-    })),
-  alocar: (feiraId, artesaoId, artesaoNome) =>
-    set((s) => ({
-      feiras: s.feiras.map((f) =>
-        f.id === feiraId && !f.alocados.includes(artesaoId) && f.vagasOcupadas < f.totalVagas
-          ? { ...f, vagasOcupadas: f.vagasOcupadas + 1, alocados: [...f.alocados, artesaoId] }
-          : f
-      ),
       artesaos: s.artesaos.map((a) =>
-        a.id === artesaoId ? { ...a, ultimaParticipacao: new Date().toISOString().slice(0, 10) } : a
+        a.id === id ? { ...a, statusCuradoria: "APROVADO" as const } : a
       ),
       logs: [
         {
           id: `MSG-${Date.now()}`,
-          tipo: "Convocação",
-          destinatario: artesaoNome,
-          resumo: `Convocação para ${s.feiras.find((f) => f.id === feiraId)?.nome ?? "feira"}`,
+          tipo: "Aprovação" as const,
+          destinatario:
+            s.artesaos.find((a) => a.id === id)?.nome ?? "Artesão",
+          resumo: "Cadastro aprovado no PRODARTE",
           data: new Date().toLocaleString("pt-BR"),
-          status: "Enviado",
+          status: "Enviado" as const,
         },
         ...s.logs,
       ],
-    })),
+    }));
+  },
+
+  rejeitarArtesao: async (id, justificativa) => {
+    await apiRejeitarArtesao(id, justificativa);
+    set((s) => ({
+      artesaos: s.artesaos.map((a) =>
+        a.id === id ? { ...a, statusCuradoria: "REPROVADO" as const } : a
+      ),
+      logs: [
+        {
+          id: `MSG-${Date.now()}`,
+          tipo: "Rejeição" as const,
+          destinatario:
+            s.artesaos.find((a) => a.id === id)?.nome ?? "Artesão",
+          resumo: `Inscrição rejeitada: ${justificativa.slice(0, 60)}${justificativa.length > 60 ? "..." : ""}`,
+          data: new Date().toLocaleString("pt-BR"),
+          status: "Enviado" as const,
+        },
+        ...s.logs,
+      ],
+    }));
+  },
+
+  addFeira: async (f) => {
+    const novaFeira = await apiCriarFeira(f);
+    set((s) => ({ feiras: [...s.feiras, novaFeira] }));
+  },
+
+  alocar: async (feiraId, artesaoId) => {
+    await alocarArtesaoNaFeira(feiraId, artesaoId);
+    // Atualizar otimisticamente: decrementar vagasRestantes
+    const state = get();
+    set({
+      feiras: state.feiras.map((f) =>
+        f.id === feiraId
+          ? { ...f, vagasRestantes: f.vagasRestantes - 1 }
+          : f
+      ),
+      ranking: state.ranking.map((r) =>
+        r.id === artesaoId ? { ...r, jaAlocadoNaFeira: true } : r
+      ),
+      logs: [
+        {
+          id: `MSG-${Date.now()}`,
+          tipo: "Convocação" as const,
+          destinatario:
+            state.ranking.find((r) => r.id === artesaoId)?.nome ?? "Artesão",
+          resumo: `Convocação para ${state.feiras.find((f) => f.id === feiraId)?.nome ?? "feira"}`,
+          data: new Date().toLocaleString("pt-BR"),
+          status: "Enviado" as const,
+        },
+        ...state.logs,
+      ],
+    });
+  },
+
+  // ─── Logs (UI-only para mensageria) ─────────────────────────────────────
   addLog: (log) =>
     set((s) => ({
       logs: [
-        { ...log, id: `MSG-${Date.now()}`, data: new Date().toLocaleString("pt-BR"), status: "Enviado" },
+        {
+          ...log,
+          id: `MSG-${Date.now()}`,
+          data: new Date().toLocaleString("pt-BR"),
+          status: "Enviado" as const,
+        },
         ...s.logs,
       ],
     })),
