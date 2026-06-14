@@ -1,22 +1,29 @@
 package com.prodarte.gestaoartesaos.controllers;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.data.domain.Sort;
 
+import com.prodarte.gestaoartesaos.dtos.AppError;
 import com.prodarte.gestaoartesaos.dtos.ArtesaoFiltroDto;
 import com.prodarte.gestaoartesaos.dtos.AtualizarArtesaoRequest;
+import com.prodarte.gestaoartesaos.dtos.CriarArtesaoRequest;
 import com.prodarte.gestaoartesaos.enums.Segmento;
+import com.prodarte.gestaoartesaos.enums.StatusCuradoria;
+import com.prodarte.gestaoartesaos.models.Artesao;
 import com.prodarte.gestaoartesaos.repositories.ArtesaoRepository;
 import com.prodarte.gestaoartesaos.specifications.ArtesaoSpecification;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 
 @RestController
@@ -28,6 +35,41 @@ public class ArtesaoController {
 
     public ArtesaoController(ArtesaoRepository artesaoRepository) {
         this.artesaoRepository = artesaoRepository;
+    }
+
+    @PostMapping("")
+    @Transactional
+    public ResponseEntity<Object> criarSolicitacao(@Valid @RequestBody CriarArtesaoRequest request) {
+        if (artesaoRepository.existsByCpf(request.cpf())) {
+            return ResponseEntity.badRequest().body(new AppError("CPF já cadastrado."));
+        }
+
+        var artesao = new Artesao();
+        artesao.setNome(request.nome());
+        artesao.setCpf(request.cpf());
+        artesao.setRg(request.rg());
+        artesao.setDataNascimento(request.dataNascimento());
+        artesao.setTelefone(request.telefone());
+        artesao.setEmail(request.email());
+        artesao.setLogradouro(request.logradouro());
+        artesao.setNumero(request.numero());
+        artesao.setComplemento(request.complemento());
+        artesao.setBairro(request.bairro());
+        artesao.setCidade(request.cidade());
+        artesao.setUf(request.uf());
+        artesao.setCep(request.cep());
+        artesao.setNomeMarca(request.nomeMarca());
+        artesao.setSegmento(Segmento.valueOf(request.segmento().toUpperCase()));
+        artesao.setDescricaoProduto(request.descricaoProduto());
+        artesao.setInstagram(request.instagram());
+        artesao.setCategoriaProduto(request.categoriaProduto());
+        artesao.setPossuiMEI(Boolean.TRUE.equals(request.possuiMei()));
+        artesao.setCnpj(request.cnpj());
+        artesao.setRazaoSocial(request.razaoSocial());
+        artesao.setStatusCuradoria(StatusCuradoria.EM_ANALISE);
+
+        var salvo = artesaoRepository.save(artesao);
+        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
     
     @GetMapping("/{id}")
