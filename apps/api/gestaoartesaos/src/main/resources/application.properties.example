@@ -1,0 +1,14 @@
+spring.application.name=gestaoartesaos
+jwt.public.key=caminho/para/sua/chave/publica.pub
+jwt.private.key=caminho/para/sua/chave/privada.key
+
+spring.sql.init.mode=always
+spring.jpa.defer-datasource-initialization=true
+spring.jpa.hibernate.ddl-auto=update
+spring.datasource.url=jdbc:postgresql:url-do-seu-banco-de-dados
+spring.datasource.username=postgres
+spring.datasource.password=sua-senha-aqui
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+whatsapp.api.url=sua-url-de-api-do-whatsapp
+whatsapp.api.token=seu-token-de-acesso
