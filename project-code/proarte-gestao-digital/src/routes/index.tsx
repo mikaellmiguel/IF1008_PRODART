@@ -21,22 +21,26 @@ export const Route = createFileRoute("/")({
 function LoginPage() {
   const navigate = useNavigate();
   const login = useAppStore((s) => s.login);
-  const [email, setEmail] = useState("gestor.maria@prodarte.pe.gov.br");
-  const [senha, setSenha] = useState("••••••••");
+  const [email, setEmail] = useState("gestor@prodarte.com");
+  const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || !senha) {
-      toast.error("Preencha e-mail/matrícula e senha.");
+      toast.error("Preencha e-mail e senha.");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      login(email.split("@")[0].replace(".", " ").replace(/\b\w/g, (c) => c.toUpperCase()));
+    try {
+      await login(email, senha);
       toast.success("Acesso liberado. Bem-vindo, Gestor!");
       navigate({ to: "/dashboard" });
-    }, 600);
+    } catch (err) {
+      toast.error((err as Error).message || "Credenciais inválidas.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -100,7 +104,7 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email">E-mail ou Matrícula</Label>
+              <Label htmlFor="email">E-mail</Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input

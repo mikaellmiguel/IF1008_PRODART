@@ -1,10 +1,15 @@
 package com.prodarte.gestaoartesaos.controllers;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.prodarte.gestaoartesaos.dtos.EnviarMensagemRequest;
 import com.prodarte.gestaoartesaos.services.WhatsappService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/mensagens")
@@ -17,8 +22,8 @@ public class MensagemController {
     }
     
     @PostMapping("teste")
-    public String enviarMensagemTeste() {
-        whatsappService.enviarMensagem("558192629209", "Olá! Esta é uma mensagem de teste.");
-        return "Mensagem de teste enviada com sucesso!";
+    public ResponseEntity<Object> enviarMensagemTeste(@Valid @RequestBody EnviarMensagemRequest request) {
+        var resultado = whatsappService.enviarMensagem(request.numero(), request.mensagem());
+        return ResponseEntity.status(resultado.enviado() ? 200 : 502).body(resultado);
     }
 }

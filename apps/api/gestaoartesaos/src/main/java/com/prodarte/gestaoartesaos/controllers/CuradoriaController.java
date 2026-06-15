@@ -28,12 +28,14 @@ public class CuradoriaController {
     private final ArtesaoRepository artesaoRepository;
     private final CuradoriaRepository curadoriaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final MensagemRepository mensagemRepository;
     private final WhatsappService whatsappService;
 
-    public CuradoriaController(ArtesaoRepository artesaoRepository, CuradoriaRepository curadoriaRepository, UsuarioRepository usuarioRepository, WhatsappService whatsappService) {
+    public CuradoriaController(ArtesaoRepository artesaoRepository, CuradoriaRepository curadoriaRepository, UsuarioRepository usuarioRepository, MensagemRepository mensagemRepository, WhatsappService whatsappService) {
         this.artesaoRepository = artesaoRepository;
         this.curadoriaRepository = curadoriaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.mensagemRepository = mensagemRepository;
         this.whatsappService = whatsappService;
     }
     
@@ -57,6 +59,7 @@ public class CuradoriaController {
         curadoria.setArtesao(dadosArtesao);
         curadoria.setGestor(gestor);
         curadoria.setStatus(StatusCuradoria.APROVADO);
+        curadoriaRepository.save(curadoria);
 
         String conteudoMsg = String.format(
             "Olá %s! 🎉 Parabéns, seu cadastro no programa PRODARTE foi APROVADO! Em breve entraremos em contato com as próximas etapas.", 
@@ -71,6 +74,7 @@ public class CuradoriaController {
         mensagem.setTipo(TipoMensagem.APROVACAO);
         mensagem.setArtesao(dadosArtesao);
         mensagem.setConteudo(conteudoMsg);
+        mensagemRepository.save(mensagem);
 
         return ResponseEntity.ok().build();
     }
@@ -103,6 +107,14 @@ public class CuradoriaController {
         );
 
         whatsappService.enviarMensagem(dadosArtesao.getTelefone(), conteudoMsg);
+
+        var mensagem = new Mensagem();
+        mensagem.setAssunto("Cadastro Rejeitado - Artesão: " + dadosArtesao.getNome());
+        mensagem.setGestor(gestor);
+        mensagem.setTipo(TipoMensagem.REJEICAO);
+        mensagem.setArtesao(dadosArtesao);
+        mensagem.setConteudo(conteudoMsg);
+        mensagemRepository.save(mensagem);
 
         return ResponseEntity.ok().build();
     }
