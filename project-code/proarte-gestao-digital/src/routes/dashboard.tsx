@@ -42,6 +42,7 @@ function DashboardPage() {
   const { artesaos, fetchArtesaos, loading } = useAppStore();
   const [busca, setBusca] = useState("");
   const [segmentoFilter, setSegmentoFilter] = useState<string>("all");
+  const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
   const [bairroFilter, setBairroFilter] = useState<string>("all");
   const [meiFilter, setMeiFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -62,12 +63,19 @@ function DashboardPage() {
       )
         return false;
       if (segmentoFilter !== "all" && a.segmento !== segmentoFilter) return false;
+      if (categoriaFilter !== "all" && a.categoriaProduto !== categoriaFilter) return false;
       if (bairroFilter !== "all" && a.bairro !== bairroFilter) return false;
       if (meiFilter !== "all" && a.possuiMEI !== (meiFilter === "sim")) return false;
       if (statusFilter !== "all" && a.statusCuradoria !== statusFilter) return false;
       return true;
     });
-  }, [artesaos, busca, segmentoFilter, bairroFilter, meiFilter, statusFilter]);
+  }, [artesaos, busca, segmentoFilter, categoriaFilter, bairroFilter, meiFilter, statusFilter]);
+
+  // Categorias extraídas dinamicamente
+  const categorias = useMemo(() => {
+    const set = new Set(artesaos.map((a) => a.categoriaProduto).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [artesaos]);
 
   // Bairros extraídos dinamicamente dos dados
   const bairros = useMemo(() => {
@@ -88,6 +96,7 @@ function DashboardPage() {
   const limparFiltros = () => {
     setBusca("");
     setSegmentoFilter("all");
+    setCategoriaFilter("all");
     setBairroFilter("all");
     setMeiFilter("all");
     setStatusFilter("all");
@@ -110,7 +119,7 @@ function DashboardPage() {
             <Filter className="h-4 w-4 text-primary" />
             Filtros Avançados
           </div>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
             <div className="relative lg:col-span-2">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou marca..." className="pl-9" />
@@ -120,6 +129,13 @@ function DashboardPage() {
               <SelectContent>
                 <SelectItem value="all">Todos os segmentos</SelectItem>
                 {segmentos.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+              <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={bairroFilter} onValueChange={setBairroFilter}>
@@ -157,6 +173,7 @@ function DashboardPage() {
                   <TableHead className="w-[80px]">ID</TableHead>
                   <TableHead>Artesão / Marca</TableHead>
                   <TableHead>Segmento</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead>Bairro</TableHead>
                   <TableHead className="text-center">MEI</TableHead>
                   <TableHead>Inscrição</TableHead>
@@ -167,7 +184,7 @@ function DashboardPage() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={9} className="h-24 text-center text-sm text-muted-foreground">
                       Nenhuma inscrição encontrada com os filtros aplicados.
                     </TableCell>
                   </TableRow>
@@ -180,6 +197,7 @@ function DashboardPage() {
                         {a.nomeMarca && <div className="text-xs text-muted-foreground">{a.nomeMarca}</div>}
                       </TableCell>
                       <TableCell><span className="text-sm">{a.segmento}</span></TableCell>
+                      <TableCell><span className="text-sm">{a.categoriaProduto ?? "—"}</span></TableCell>
                       <TableCell><span className="text-sm">{a.bairro ?? "—"}</span></TableCell>
                       <TableCell className="text-center">
                         {a.possuiMEI ? (

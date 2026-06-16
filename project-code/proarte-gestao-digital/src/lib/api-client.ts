@@ -20,6 +20,30 @@ export interface LoginResponse {
   nome: string;
 }
 
+export interface DocumentoApi {
+  id: string;
+  tipo: "RG" | "CPF" | "COMPROVANTE_RESIDENCIA" | "PORTFOLIO" | "MEI" | "OUTRO";
+  url: string;
+  mimeType: string;
+  tamanhoBytes: number;
+  status: "PENDENTE" | "APROVADO" | "REJEITADO";
+  criadoEm: string;
+}
+
+export interface MensagemApi {
+  id: string;
+  assunto: string;
+  gestor: {
+    id: number;
+    nome: string;
+    email: string;
+    telefone: string;
+  } | null;
+  tipo: "REJEICAO" | "CONVOCACAO" | "APROVACAO" | "INDIVIDUAL" | "MASSA" | "COMUNICADO";
+  conteudo: string;
+  enviadaEm: string;
+}
+
 export interface ArtesaoApi {
   id: number;
   nome: string;
@@ -46,6 +70,9 @@ export interface ArtesaoApi {
   statusCuradoria: "EM_ANALISE" | "APROVADO" | "REPROVADO";
   dataInscricao: string;
   atualizadoEm: string;
+  documentos?: DocumentoApi[];
+  mensagens?: MensagemApi[];
+  alocacoes?: AlocacaoApi[];
 }
 
 export interface FeiraApi {
@@ -75,6 +102,8 @@ export interface AlocacaoApi {
   feira: {
     id: string;
     nome: string;
+    data: string;
+    local: string;
   };
   status: "ALOCADO" | "CANCELADO";
   criadaEm: string;
@@ -221,6 +250,10 @@ export async function rejeitarArtesao(
     method: "POST",
     body: JSON.stringify({ justificativa }),
   });
+}
+
+export async function listarTiposMensagem(): Promise<string[]> {
+  return apiFetch<string[]>("/mensagens/tipos");
 }
 
 // ─── Feiras ──────────────────────────────────────────────────────────────────

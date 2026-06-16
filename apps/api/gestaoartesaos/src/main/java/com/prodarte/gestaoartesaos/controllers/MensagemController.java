@@ -1,6 +1,7 @@
 package com.prodarte.gestaoartesaos.controllers;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.prodarte.gestaoartesaos.dtos.EnviarMensagemRequest;
 import com.prodarte.gestaoartesaos.services.WhatsappService;
+import com.prodarte.gestaoartesaos.enums.TipoMensagem;
 
 import jakarta.validation.Valid;
 
@@ -21,6 +23,11 @@ public class MensagemController {
         this.whatsappService = whatsappService;
     }
     
+    @GetMapping("/tipos")
+    public ResponseEntity<Object> getTiposMensagem() {
+        return ResponseEntity.ok(TipoMensagem.values());
+    }
+
     @PostMapping("teste")
     public ResponseEntity<Object> enviarMensagemTeste(@Valid @RequestBody EnviarMensagemRequest request) {
         var resultado = whatsappService.enviarMensagem(request.numero(), request.mensagem());

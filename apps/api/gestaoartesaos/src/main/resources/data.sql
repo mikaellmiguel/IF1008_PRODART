@@ -104,12 +104,12 @@ WHERE NOT EXISTS (SELECT 1 FROM tb_mensagens WHERE id = '423e4567-e89b-12d3-a456
 -- 8. DOCUMENTOS
 -- ===================================================================================
 -- Supondo que seus TipoDocumento Enums possuam RG_FRENTE e COMPROVANTE_RESIDENCIA
-INSERT INTO tb_documentos (id, artesao_id, tipo, url, mime_type, tamanho_bytes, criado_em)
-SELECT '523e4567-e89b-12d3-a456-426614174001', 1, 'RG', 'https://s3.aws.com/bucket/docs/rg_maria.png', 'image/png', 1024500, CURRENT_TIMESTAMP
+INSERT INTO tb_documentos (id, artesao_id, tipo, url, mime_type, tamanho_bytes, status, criado_em)
+SELECT '523e4567-e89b-12d3-a456-426614174001', 1, 'RG', 'https://s3.aws.com/bucket/docs/rg_maria.png', 'image/png', 1024500, 'APROVADO', CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM tb_documentos WHERE id = '523e4567-e89b-12d3-a456-426614174001');
 
-INSERT INTO tb_documentos (id, artesao_id, tipo, url, mime_type, tamanho_bytes, criado_em)
-SELECT '523e4567-e89b-12d3-a456-426614174002', 1, 'COMPROVANTE_RESIDENCIA', 'https://s3.aws.com/bucket/docs/comp_maria.pdf', 'application/pdf', 2048000, CURRENT_TIMESTAMP
+INSERT INTO tb_documentos (id, artesao_id, tipo, url, mime_type, tamanho_bytes, status, criado_em)
+SELECT '523e4567-e89b-12d3-a456-426614174002', 1, 'COMPROVANTE_RESIDENCIA', 'https://s3.aws.com/bucket/docs/comp_maria.pdf', 'application/pdf', 2048000, 'APROVADO', CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM tb_documentos WHERE id = '523e4567-e89b-12d3-a456-426614174002');
 
 -- ===================================================================================

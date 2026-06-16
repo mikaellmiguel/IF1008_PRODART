@@ -15,6 +15,7 @@ import {
   rejeitarArtesao as apiRejeitarArtesao,
   criarFeira as apiCriarFeira,
   alocarArtesaoNaFeira,
+  atualizarArtesao as apiAtualizarArtesao,
   setAccessToken,
   type ArtesaoApi,
   type FeiraApi,
@@ -69,6 +70,7 @@ interface AppState {
     limiteVagas: number;
   }) => Promise<void>;
   alocar: (feiraId: string, artesaoId: number) => Promise<void>;
+  editarArtesao: (id: number, dados: Partial<ArtesaoApi>) => Promise<ArtesaoApi>;
 
   // Local log (mensageria page — UI-only)
   addLog: (log: Omit<MensagemLog, "id" | "data" | "status">) => void;
@@ -222,6 +224,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...state.logs,
       ],
     });
+  },
+
+  editarArtesao: async (id, dados) => {
+    const atualizado = await apiAtualizarArtesao(id, dados);
+    set((s) => ({
+      artesaos: s.artesaos.map((a) => (a.id === id ? { ...a, ...atualizado } : a)),
+    }));
+    return atualizado;
   },
 
   // ─── Logs (UI-only para mensageria) ─────────────────────────────────────

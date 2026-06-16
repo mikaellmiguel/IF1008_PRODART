@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.prodarte.gestaoartesaos.enums.TipoDocumento;
+import com.prodarte.gestaoartesaos.enums.StatusDocumento;
 
 @Entity
 @Table(name = "tb_documentos")
@@ -23,7 +24,12 @@ public class Documento {
     // Relacionamento de volta para o Artesão (A chave estrangeira fica aqui)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "artesao_id", nullable = false)
+    @JsonIgnore
     private Artesao artesao;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private StatusDocumento status = StatusDocumento.PENDENTE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
