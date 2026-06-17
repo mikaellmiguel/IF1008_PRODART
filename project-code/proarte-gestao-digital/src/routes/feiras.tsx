@@ -9,9 +9,10 @@ import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarPlus, MapPin, CalendarDays, Users, ArrowDownAZ, UserCheck, Scale, Loader2 } from "lucide-react";
+import { CalendarPlus, MapPin, CalendarDays, Users, ArrowDownAZ, UserCheck, Scale, Loader2, ChevronsUpDown, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ function FeirasPage() {
   const { feiras, ranking, fetchFeiras, fetchRanking, addFeira, alocar, loading } = useAppStore();
   const [feiraId, setFeiraId] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(false);
   const [form, setForm] = useState({ nome: "", data: "", local: "", limiteVagas: 20 });
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -139,37 +141,92 @@ function FeirasPage() {
   return (
     <AppLayout title="Gestão de Feiras & Rodízio Justo">
       <div className="space-y-5">
-        {/* Header bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <Label htmlFor="feira-select" className="text-xs uppercase tracking-wide text-muted-foreground">
-              Feira Selecionada
+              Feira ativa
             </Label>
-            <Select value={feiraId} onValueChange={setFeiraId}>
-              <SelectTrigger id="feira-select" className="w-[400px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {feirasAtivas.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase px-2 py-1 bg-muted/20">Feiras Ativas</SelectLabel>
-                    {feirasAtivas.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.nome} - {new Date(f.data).toLocaleDateString("pt-BR")}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {feirasPassadas.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase px-2 py-1 bg-muted/20 mt-1">Feiras Antigas</SelectLabel>
-                    {feirasPassadas.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.nome} - {new Date(f.data).toLocaleDateString("pt-BR")}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={openDropdown} onOpenChange={setOpenDropdown}>
+              <PopoverTrigger asChild>
+                <Button
+                  id="feira-select"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openDropdown}
+                  className="w-[400px] justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {feiraAtual
+                      ? `${feiraAtual.nome} - ${new Date(feiraAtual.data).toLocaleDateString("pt-BR")}`
+                      : "Selecionar Feira..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command filter={(value, search) => {
+                  if (value.includes(search.toLowerCase())) return 1;
+                  return 0;
+                }}>
+                  <CommandInput placeholder="Pesquisar feira por nome ou data (DD/MM/AAAA)..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma feira encontrada.</CommandEmpty>
+                    {feirasAtivas.length > 0 && (
+                      <CommandGroup heading="Feiras Ativas">
+                        {feirasAtivas.map((f) => {
+                          const dateStr = new Date(f.data).toLocaleDateString("pt-BR");
+                          const searchVal = `${f.nome} ${dateStr} ${f.data}`.toLowerCase();
+                          return (
+                            <CommandItem
+                              key={f.id}
+                              value={searchVal}
+                              onSelect={() => {
+                                setFeiraId(f.id);
+                                setOpenDropdown(false);
+                              }}
+                              className="text-xs flex items-center justify-between cursor-pointer"
+                            >
+                              <span className="truncate">{f.nome} - {dateStr}</span>
+                              <Check
+                                className={`h-4 w-4 shrink-0 ${
+                                  feiraId === f.id ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    )}
+                    {feirasPassadas.length > 0 && (
+                      <CommandGroup heading="Feiras Antigas">
+                        {feirasPassadas.map((f) => {
+                          const dateStr = new Date(f.data).toLocaleDateString("pt-BR");
+                          const searchVal = `${f.nome} ${dateStr} ${f.data}`.toLowerCase();
+                          return (
+                            <CommandItem
+                              key={f.id}
+                              value={searchVal}
+                              onSelect={() => {
+                                setFeiraId(f.id);
+                                setOpenDropdown(false);
+                              }}
+                              className="text-xs flex items-center justify-between cursor-pointer"
+                            >
+                              <span className="truncate">{f.nome} - {dateStr}</span>
+                              <Check
+                                className={`h-4 w-4 shrink-0 ${
+                                  feiraId === f.id ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
