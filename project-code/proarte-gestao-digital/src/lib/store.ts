@@ -19,11 +19,14 @@ import {
   setAccessToken,
   adicionarCurso as apiAdicionarCurso,
   deletarCurso as apiDeletarCurso,
+  listarMensagens,
+  enviarMensagemMassa,
   type ArtesaoApi,
   type FeiraApi,
   type RodizioRankingItem,
   type LoginResponse,
   type CursoApi,
+  type MensagemResumidaApi,
 } from "./api-client";
 
 // Tipos para compatibilidade com os componentes existentes
@@ -62,6 +65,7 @@ interface AppState {
   fetchArtesaos: (filtros?: Record<string, string>) => Promise<void>;
   fetchFeiras: () => Promise<void>;
   fetchRanking: (feiraId: string) => Promise<void>;
+  fetchLogs: () => Promise<void>;
 
   // Mutations
   aprovarArtesao: (id: number) => Promise<void>;
@@ -76,6 +80,12 @@ interface AppState {
   editarArtesao: (id: number, dados: Partial<ArtesaoApi>) => Promise<ArtesaoApi>;
   adicionarCurso: (artesaoId: number, nome: string, dataConclusao: string) => Promise<void>;
   deletarCurso: (artesaoId: number, cursoId: number) => Promise<void>;
+  dispararMensagemMassa: (dados: {
+    artesaoIds: number[];
+    assunto: string;
+    conteudo: string;
+    tipo: string;
+  }) => Promise<void>;
 
   // Local log (mensageria page — UI-only)
   addLog: (log: Omit<MensagemLog, "id" | "data" | "status">) => void;
@@ -149,6 +159,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const ranking = await getRankingRodizio(feiraId);
       set({ ranking, loading: false });
+    } catch (err) {
+      set({ loading: false, error: (err as Error).message });
+    }
+  },
+
+  fetchLogs: async () => {
+    set({ loading: true, error: null });
+    try {
+      const msgs = await listarMensagens();
+      const logsMapped: MensagemLog[] = msgs.map((m) => {
+        let tipoLabel: MensagemLog["tipo"] = "Comunicado";
+        if (m.tipo === "CONVOCACAO") tipoLabel = "Convocação";
+        else if (m.tipo === "REJEICAO") tipoLabel = "Rejeição";
+        else if (m.tipo === "APROVACAO") tipoLabel = "Aprovação";
+
+        return {
+          id: m.id,
+          tipo: tipoLabel,
+          destinatario: m.nomeArtesao,
+          resumo: `${m.assunto} — ${m.conteudo}`,
+          data: new Date(m.enviadaEm).toLocaleString("pt-BR"),
+          status: "Enviado" as const,
+        };
+      });
+      set({ logs: logsMapped, loading: false });
     } catch (err) {
       set({ loading: false, error: (err as Error).message });
     }
@@ -259,6 +294,18 @@ export const useAppStore = create<AppState>((set, get) => ({
           : a
       ),
     }));
+  },
+
+  dispararMensagemMassa: async (dados) => {
+    set({ loading: true, error: null });
+    try {
+      await enviarMensagemMassa(dados);
+      set({ loading: false });
+      await get().fetchLogs();
+    } catch (err) {
+      set({ loading: false, error: (err as Error).message });
+      throw err;
+    }
   },
 
   // ─── Logs (UI-only para mensageria) ─────────────────────────────────────

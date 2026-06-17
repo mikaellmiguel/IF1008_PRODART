@@ -1,70 +1,62 @@
 package com.prodarte.gestaoartesaos.services;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.prodarte.gestaoartesaos.dtos.WhatsappEnvioResponse;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class WhatsappService {
-    
-    @Value("${whatsapp.api.url}")
-    private String apiUrl;
-    @Value("${whatsapp.api.token}")
-    private String apiToken;
 
-    private final RestTemplate restTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(WhatsappService.class);
 
-    public WhatsappService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+    @Value("${twilio.whatsapp-number}")
+    private String senderWhatsappNumber;
 
     public WhatsappEnvioResponse enviarMensagem(String numero, String mensagem) {
-        var numeroNormalizado = normalizarNumero(numero);
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("messaging_product", "whatsapp");
-        payload.put("to", numeroNormalizado);
-        payload.put("type", "text");
-
-        Map<String, String> text = new HashMap<>();
-        text.put("body", mensagem);
-        payload.put("text", text);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiToken);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+        String numeroDestino = normalizarNumero(numero);
+        if (numeroDestino.isEmpty()) {
+            logger.error("Falha ao enviar mensagem: número de destino vazio");
+            return new WhatsappEnvioResponse(false, 400, "Número de destino inválido ou vazio");
+        }
 
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
-            boolean sucesso = response.getStatusCode().is2xxSuccessful();
-            String detalhe = response.getBody() != null ? response.getBody() : response.getStatusCode().toString();
+            Message message = Message.creator(
+                new PhoneNumber(numeroDestino),
+                new PhoneNumber(senderWhatsappNumber),
+                mensagem
+            ).create();
 
-            if (sucesso) {
-                System.out.println("WhatsApp enviado para " + numeroNormalizado + ": " + detalhe);
-            } else {
-                System.err.println("WhatsApp retornou erro para " + numeroNormalizado + ": " + detalhe);
-            }
-
-            return new WhatsappEnvioResponse(sucesso, response.getStatusCode().value(), detalhe);
-        } catch (RestClientException e) {
-            System.err.println("Erro ao enviar WhatsApp para " + numeroNormalizado + ": " + e.getMessage());
-            return new WhatsappEnvioResponse(false, 0, e.getMessage());
+            logger.info("Mensagem WhatsApp enviada com sucesso para {}. SID: {}", numeroDestino, message.getSid());
+            return new WhatsappEnvioResponse(true, 200, "Enviado com sucesso. SID: " + message.getSid());
+        } catch (Exception e) {
+            logger.error("Erro ao enviar mensagem WhatsApp via Twilio para {}: {}", numeroDestino, e.getMessage(), e);
+            return new WhatsappEnvioResponse(false, 500, e.getMessage());
         }
     }
 
     private String normalizarNumero(String numero) {
-        return numero == null ? "" : numero.replaceAll("\\D", "");
+        if (numero == null) {
+            return "";
+        }
+        String apenasDigitos = numero.replaceAll("\\D", "");
+        if (apenasDigitos.isEmpty()) {
+            return "";
+        }
+
+            // Brasil: 55 + DDD + 9 + 8 dígitos = 13 dígitos
+        if (apenasDigitos.startsWith("55")
+                && apenasDigitos.length() == 13
+                && apenasDigitos.charAt(4) == '9') {
+
+            apenasDigitos =
+                    apenasDigitos.substring(0, 4) +
+                    apenasDigitos.substring(5);
+        }
+        // Twilio requires WhatsApp destination format: "whatsapp:+[country_code][area_code][number]"
+        return "whatsapp:+" + apenasDigitos;
     }
 }

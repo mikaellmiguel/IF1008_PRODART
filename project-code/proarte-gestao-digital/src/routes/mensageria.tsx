@@ -37,7 +37,7 @@ const statusList = [
 ];
 
 function MensageriaPage() {
-  const { artesaos, feiras, logs, fetchArtesaos, fetchFeiras, addLog } = useAppStore();
+  const { artesaos, feiras, logs, fetchArtesaos, fetchFeiras, fetchLogs, dispararMensagemMassa } = useAppStore();
 
   const [selectedFairs, setSelectedFairs] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["APROVADO"]);
@@ -53,6 +53,7 @@ function MensageriaPage() {
   useEffect(() => {
     fetchArtesaos();
     fetchFeiras();
+    fetchLogs();
     
     listarTiposMensagem()
       .then((tipos) => {
@@ -65,7 +66,7 @@ function MensageriaPage() {
         console.error("Erro ao carregar tipos de mensagem:", err);
         toast.error("Erro ao carregar tipos de mensagem do servidor.");
       });
-  }, [fetchArtesaos, fetchFeiras]);
+  }, [fetchArtesaos, fetchFeiras, fetchLogs]);
 
   const categoriasDisponiveis = useMemo(() => {
     const set = new Set(artesaos.map((a) => a.categoriaProduto).filter(Boolean) as string[]);
@@ -130,7 +131,7 @@ function MensageriaPage() {
     return artesaos.filter((a) => selectedRecipientIds.includes(a.id));
   }, [artesaos, selectedRecipientIds]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!titulo.trim() || !mensagem.trim()) {
       toast.error("Preencha o título e a mensagem.");
       return;
@@ -145,17 +146,21 @@ function MensageriaPage() {
     }
 
     setSending(true);
-    setTimeout(() => {
-      addLog({
-        tipo: formatTipoLabel(tipoMensagem) as any,
-        destinatario: `${finalDestinatarios.length} artesão(s)`,
-        resumo: `${titulo} — ${mensagem.slice(0, 50)}${mensagem.length > 50 ? "..." : ""}`,
+    try {
+      await dispararMensagemMassa({
+        artesaoIds: finalDestinatarios.map((d) => d.id),
+        assunto: titulo,
+        conteudo: mensagem,
+        tipo: tipoMensagem,
       });
       toast.success(`Mensagem enviada com sucesso para ${finalDestinatarios.length} destinatários!`);
       setTitulo("");
       setMensagem("");
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao disparar mensagens.");
+    } finally {
       setSending(false);
-    }, 800);
+    }
   };
 
   const toggleFilterItem = (list: string[], setList: (arr: string[]) => void, value: string) => {

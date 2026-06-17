@@ -50,6 +50,18 @@ export interface MensagemApi {
   enviadaEm: string;
 }
 
+export interface MensagemResumidaApi {
+  id: string;
+  conteudo: string;
+  assunto: string;
+  tipo: string;
+  enviadaEm: string;
+  artesaoId: number;
+  gestorId: number;
+  nomeArtesao: string;
+  nomeGestor: string;
+}
+
 export interface ArtesaoApi {
   id: number;
   nome: string;
@@ -264,6 +276,22 @@ export async function rejeitarArtesao(
 
 export async function listarTiposMensagem(): Promise<string[]> {
   return apiFetch<string[]>("/mensagens/tipos");
+}
+
+export async function listarMensagens(): Promise<MensagemResumidaApi[]> {
+  return apiFetch<MensagemResumidaApi[]>("/mensagens");
+}
+
+export async function enviarMensagemMassa(dados: {
+  artesaoIds: number[];
+  assunto: string;
+  conteudo: string;
+  tipo: string;
+}): Promise<void> {
+  await apiFetch<void>("/mensagens", {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
 }
 
 // ─── Feiras ──────────────────────────────────────────────────────────────────

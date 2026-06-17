@@ -10,5 +10,6 @@ spring.datasource.username=postgres
 spring.datasource.password=sua-senha-aqui
 spring.datasource.driver-class-name=org.postgresql.Driver
 
-whatsapp.api.url=http://localhost:3000/messages
-whatsapp.api.token=dev-token
+twilio.account-sid=your-account-sid
+twilio.auth-token=your-auth-token
+twilio.whatsapp-number=whatsapp:seu-numero
