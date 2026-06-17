@@ -1,6 +1,7 @@
 # ─── DEPENDÊNCIAS ────────────────────────────────────────────────────────────
 # Nunca versionar node_modules. O npm workspaces instala tudo na raiz.
 node_modules/
+.tanstack/
 
 # ─── BUILDS ──────────────────────────────────────────────────────────────────
 # Artefatos de build gerados automaticamente — nunca versionados
@@ -8,6 +9,7 @@ dist/
 build/
 .next/
 out/
+.netlify/
 
 # ─── VARIÁVEIS DE AMBIENTE ───────────────────────────────────────────────────
 # Arquivos .env contêm segredos (chaves de API, connection strings, etc.)
