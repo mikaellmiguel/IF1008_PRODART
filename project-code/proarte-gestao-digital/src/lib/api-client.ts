@@ -30,6 +30,12 @@ export interface DocumentoApi {
   criadoEm: string;
 }
 
+export interface CursoApi {
+  id: number;
+  nome: string;
+  dataConclusao: string;
+}
+
 export interface MensagemApi {
   id: string;
   assunto: string;
@@ -73,6 +79,7 @@ export interface ArtesaoApi {
   documentos?: DocumentoApi[];
   mensagens?: MensagemApi[];
   alocacoes?: AlocacaoApi[];
+  cursos?: CursoApi[];
 }
 
 export interface FeiraApi {
@@ -122,6 +129,9 @@ export interface RodizioRankingItem {
   scoreJustica: number;
   posicao: number;
   jaAlocadoNaFeira: boolean;
+  dataAlocacao: string | null;
+  dataFeiraFutura: string | null;
+  dataUltimoCurso: string | null;
 }
 
 export interface FiltrosArtesao {
@@ -301,4 +311,23 @@ export async function getRankingRodizio(
   return apiFetch<RodizioRankingItem[]>(
     `/rodizio/ranking?feiraId=${feiraId}`
   );
+}
+
+// ─── Cursos ──────────────────────────────────────────────────────────────────
+
+export async function adicionarCurso(
+  artesaoId: number,
+  nome: string,
+  dataConclusao: string
+): Promise<CursoApi> {
+  return apiFetch<CursoApi>("/curso", {
+    method: "POST",
+    body: JSON.stringify({ artesaoId, nome, dataConclusao }),
+  });
+}
+
+export async function deletarCurso(cursoId: number): Promise<void> {
+  await apiFetch<void>(`/curso/${cursoId}`, {
+    method: "DELETE",
+  });
 }

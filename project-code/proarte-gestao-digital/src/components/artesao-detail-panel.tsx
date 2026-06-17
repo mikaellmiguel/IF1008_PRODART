@@ -31,7 +31,8 @@ import {
   MessageSquare,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  GraduationCap
 } from "lucide-react";
 import type { ArtesaoApi, DocumentoApi, MensagemApi } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
@@ -92,6 +93,16 @@ function formatSize(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
+function formatInstagramUrl(handle: string): string {
+  if (!handle) return "";
+  const clean = handle.trim();
+  if (clean.startsWith("http://") || clean.startsWith("https://")) {
+    return clean;
+  }
+  const username = clean.startsWith("@") ? clean.substring(1) : clean;
+  return `https://instagram.com/${username}`;
+}
+
 interface Props {
   artesao: ArtesaoApi | null;
   open: boolean;
@@ -99,10 +110,53 @@ interface Props {
 }
 
 export function ArtesaoDetailPanel({ artesao, open, onClose }: Props) {
-  const { aprovarArtesao, rejeitarArtesao, editarArtesao } = useAppStore();
+  const { aprovarArtesao, rejeitarArtesao, editarArtesao, adicionarCurso, deletarCurso } = useAppStore();
   const [showRejection, setShowRejection] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // States for courses/trainings
+  const [showAddCurso, setShowAddCurso] = useState(false);
+  const [novoCursoNome, setNovoCursoNome] = useState("");
+  const [novoCursoData, setNovoCursoData] = useState("");
+  const [cursoLoading, setCursoLoading] = useState(false);
+
+  const handleSaveCurso = async () => {
+    if (!artesao || !novoCursoNome || !novoCursoData) return;
+    setCursoLoading(true);
+    try {
+      const formattedDate = `${novoCursoData}T00:00:00`;
+      await adicionarCurso(artesao.id, novoCursoNome, formattedDate);
+      
+      const updatedArtesao = useAppStore.getState().artesaos.find(a => a.id === artesao.id);
+      if (updatedArtesao && updatedArtesao.cursos) {
+        artesao.cursos = [...updatedArtesao.cursos];
+      }
+      
+      toast.success("Curso adicionado com sucesso!");
+      setShowAddCurso(false);
+      setNovoCursoNome("");
+      setNovoCursoData("");
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao salvar curso.");
+    } finally {
+      setCursoLoading(false);
+    }
+  };
+
+  const handleDeleteCurso = async (cursoId: number) => {
+    if (!artesao) return;
+    setCursoLoading(true);
+    try {
+      await deletarCurso(artesao.id, cursoId);
+      artesao.cursos = (artesao.cursos ?? []).filter((c) => c.id !== cursoId);
+      toast.success("Curso removido com sucesso!");
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao deletar curso.");
+    } finally {
+      setCursoLoading(false);
+    }
+  };
 
   // Controle de exibição de dados mascarados
   const [unmaskedFields, setUnmaskedFields] = useState<Record<string, boolean>>({});
@@ -383,7 +437,20 @@ export function ArtesaoDetailPanel({ artesao, open, onClose }: Props) {
               {artesao.nomeMarca && <Field label="Nome da marca" value={artesao.nomeMarca} />}
               <Field label="Segmento" value={artesao.segmento} />
               {artesao.categoriaProduto && <Field label="Categoria" value={artesao.categoriaProduto} />}
-              {artesao.instagram && <Field label="Instagram / Redes Sociais" value={artesao.instagram} />}
+              {artesao.instagram && (
+                <div className="space-y-0.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Instagram / Redes Sociais</p>
+                  <a
+                    href={formatInstagramUrl(artesao.instagram)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1 group/insta"
+                  >
+                    {artesao.instagram}
+                    <ExternalLink className="h-3.5 w-3.5 opacity-60 group-hover/insta:opacity-100 transition shrink-0" />
+                  </a>
+                </div>
+              )}
               {artesao.descricaoProduto && <Field label="Descrição dos Produtos ou Serviços" value={artesao.descricaoProduto} full />}
             </Section>
 
@@ -407,6 +474,83 @@ export function ArtesaoDetailPanel({ artesao, open, onClose }: Props) {
                   {artesao.razaoSocial && <Field label="Razão Social" value={artesao.razaoSocial} />}
                 </>
               )}
+            </Section>
+
+            <Section icon={GraduationCap} title="Capacitações / Cursos">
+              <div className="col-span-2 space-y-3">
+                {(!artesao.cursos || artesao.cursos.length === 0) ? (
+                  <p className="text-xs text-muted-foreground py-1">Nenhum curso ou capacitação cadastrado.</p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {artesao.cursos.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/60 shadow-sm group/item hover:border-primary/40 transition">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm truncate">{c.nome}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Calendar className="h-3 w-3" />
+                            Conclusão: {new Date(c.dataConclusao).toLocaleDateString("pt-BR")}
+                          </div>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover/item:opacity-100 focus:opacity-100 transition shrink-0"
+                          onClick={() => handleDeleteCurso(c.id)}
+                          disabled={cursoLoading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Form to add course */}
+                {showAddCurso ? (
+                  <div className="border rounded-lg p-3 bg-muted/30 space-y-3 mt-2">
+                    <div className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Nova Capacitação</div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="curso-nome" className="text-xs">Nome do Curso</Label>
+                        <Input
+                          id="curso-nome"
+                          value={novoCursoNome}
+                          onChange={(e) => setNovoCursoNome(e.target.value)}
+                          placeholder="Ex: Empreendedorismo no Artesanato"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="curso-data" className="text-xs">Data de Conclusão</Label>
+                        <Input
+                          id="curso-data"
+                          type="date"
+                          value={novoCursoData}
+                          onChange={(e) => setNovoCursoData(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddCurso(false)}>
+                        Cancelar
+                      </Button>
+                      <Button size="sm" className="h-7 text-xs" onClick={handleSaveCurso} disabled={cursoLoading || !novoCursoNome || !novoCursoData}>
+                        Salvar Curso
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1 border-dashed hover:border-primary hover:text-primary transition w-full sm:w-auto"
+                    onClick={() => setShowAddCurso(true)}
+                  >
+                    + Adicionar Capacitação
+                  </Button>
+                )}
+              </div>
             </Section>
           </TabsContent>
 

@@ -68,14 +68,14 @@ function LoginPage() {
             <div>
               <p className="text-lg font-bold tracking-tight">PRODARTE</p>
               <p className="text-[11px] uppercase tracking-widest text-sidebar-foreground/60">
-                Governo de Pernambuco
+                Prefeitura do Recife
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold leading-tight">
-              Triagem, curadoria e rodízio justo do artesanato pernambucano.
+              Triagem, curadoria e rodízio justo do artesanato recifense.
             </h2>
             <p className="text-sm text-sidebar-foreground/70">
               Plataforma oficial para gestão de inscrições, alocação em feiras e comunicação com artesãos
@@ -150,7 +150,7 @@ function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-[11px] text-muted-foreground">
-            v1.0 · PRODARTE © {new Date().getFullYear()} · Secretaria de Cultura de Pernambuco
+            v1.0 · PRODARTE © {new Date().getFullYear()} · Secretaria do Trabalho e Qualificação Profissional · Prefeitura do Recife
           </p>
         </div>
       </div>

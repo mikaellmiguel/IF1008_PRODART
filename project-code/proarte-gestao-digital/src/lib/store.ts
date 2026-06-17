@@ -17,10 +17,13 @@ import {
   alocarArtesaoNaFeira,
   atualizarArtesao as apiAtualizarArtesao,
   setAccessToken,
+  adicionarCurso as apiAdicionarCurso,
+  deletarCurso as apiDeletarCurso,
   type ArtesaoApi,
   type FeiraApi,
   type RodizioRankingItem,
   type LoginResponse,
+  type CursoApi,
 } from "./api-client";
 
 // Tipos para compatibilidade com os componentes existentes
@@ -71,6 +74,8 @@ interface AppState {
   }) => Promise<void>;
   alocar: (feiraId: string, artesaoId: number) => Promise<void>;
   editarArtesao: (id: number, dados: Partial<ArtesaoApi>) => Promise<ArtesaoApi>;
+  adicionarCurso: (artesaoId: number, nome: string, dataConclusao: string) => Promise<void>;
+  deletarCurso: (artesaoId: number, cursoId: number) => Promise<void>;
 
   // Local log (mensageria page — UI-only)
   addLog: (log: Omit<MensagemLog, "id" | "data" | "status">) => void;
@@ -232,6 +237,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       artesaos: s.artesaos.map((a) => (a.id === id ? { ...a, ...atualizado } : a)),
     }));
     return atualizado;
+  },
+
+  adicionarCurso: async (artesaoId, nome, dataConclusao) => {
+    const novoCurso = await apiAdicionarCurso(artesaoId, nome, dataConclusao);
+    set((s) => ({
+      artesaos: s.artesaos.map((a) =>
+        a.id === artesaoId
+          ? { ...a, cursos: [...(a.cursos ?? []), novoCurso] }
+          : a
+      ),
+    }));
+  },
+
+  deletarCurso: async (artesaoId, cursoId) => {
+    await apiDeletarCurso(cursoId);
+    set((s) => ({
+      artesaos: s.artesaos.map((a) =>
+        a.id === artesaoId
+          ? { ...a, cursos: (a.cursos ?? []).filter((c) => c.id !== cursoId) }
+          : a
+      ),
+    }));
   },
 
   // ─── Logs (UI-only para mensageria) ─────────────────────────────────────

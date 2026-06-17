@@ -91,4 +91,7 @@ public class Artesao {
 
     @OneToMany(mappedBy = "artesao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Mensagem> mensagens;
+
+    @OneToMany(mappedBy = "artesao", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Curso> cursos;
 }

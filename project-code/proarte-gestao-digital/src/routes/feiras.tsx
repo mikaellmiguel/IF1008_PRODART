@@ -9,11 +9,45 @@ import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CalendarPlus, MapPin, CalendarDays, Users, ArrowDownAZ, UserCheck, Scale, Loader2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
+
+function formatRelativeDate(dateStr: string | null): string {
+  if (!dateStr) return "Nunca participou";
+  const date = new Date(dateStr);
+  const now = new Date();
+  
+  const d1 = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const d2 = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    const absDays = Math.abs(diffDays);
+    if (absDays === 0) return "Hoje";
+    if (absDays === 1) return "Amanhã";
+    if (absDays < 30) return `Em ${absDays} dias`;
+    const absMonths = Math.round(absDays / 30.4375);
+    if (absMonths <= 1) return "Em 1 mês";
+    return `Em ${absMonths} meses`;
+  }
+  
+  if (diffDays === 0) return "Hoje";
+  if (diffDays === 1) return "Ontem";
+  if (diffDays < 30) return `Há ${diffDays} dias`;
+  
+  const diffMonths = Math.floor(diffDays / 30.4375);
+  if (diffMonths < 12) {
+    if (diffMonths <= 1) return "Há 1 mês";
+    return `Há ${diffMonths} meses`;
+  }
+  
+  const diffYears = Math.floor(diffMonths / 12);
+  if (diffYears <= 1) return "Há 1 ano";
+  return `Há ${diffYears} anos`;
+}
 
 export const Route = createFileRoute("/feiras")({
   head: () => ({ meta: [{ title: "Feiras & Rodízio Justo — PRODARTE" }] }),
@@ -32,10 +66,16 @@ function FeirasPage() {
     fetchFeiras();
   }, [fetchFeiras]);
 
-  // Selecionar primeira feira quando lista carrega
+  // Selecionar primeira feira ativa quando lista carrega
   useEffect(() => {
     if (feiras.length > 0 && !feiraId) {
-      setFeiraId(feiras[0].id);
+      const now = new Date();
+      const active = feiras.filter((f) => new Date(f.data) >= now);
+      if (active.length > 0) {
+        setFeiraId(active[0].id);
+      } else {
+        setFeiraId(feiras[0].id);
+      }
     }
   }, [feiras, feiraId]);
 
@@ -45,6 +85,10 @@ function FeirasPage() {
       fetchRanking(feiraId);
     }
   }, [feiraId, fetchRanking]);
+
+  const now = new Date();
+  const feirasAtivas = feiras.filter((f) => new Date(f.data) >= now);
+  const feirasPassadas = feiras.filter((f) => new Date(f.data) < now);
 
   const feiraAtual = feiras.find((f) => f.id === feiraId);
 
@@ -102,11 +146,28 @@ function FeirasPage() {
               Feira ativa
             </Label>
             <Select value={feiraId} onValueChange={setFeiraId}>
-              <SelectTrigger id="feira-select" className="w-[320px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="feira-select" className="w-[400px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {feiras.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-                ))}
+                {feirasAtivas.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase px-2 py-1 bg-muted/20">Feiras Ativas</SelectLabel>
+                    {feirasAtivas.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome} - {new Date(f.data).toLocaleDateString("pt-BR")}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {feirasPassadas.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase px-2 py-1 bg-muted/20 mt-1">Feiras Antigas</SelectLabel>
+                    {feirasPassadas.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome} - {new Date(f.data).toLocaleDateString("pt-BR")}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -169,8 +230,18 @@ function FeirasPage() {
                 <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <Users className="h-4 w-4" /> Vagas Disponíveis
                 </span>
-                <Badge variant="outline" className={vagasRestantes === 0 ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-success/40 bg-success/10 text-success"}>
-                  {vagasRestantes === 0 ? "Esgotada" : "Aberta"}
+                <Badge variant="outline" className={
+                  new Date(feiraAtual.data) < now
+                    ? "border-muted/40 bg-muted/20 text-muted-foreground"
+                    : vagasRestantes === 0
+                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-success/40 bg-success/10 text-success"
+                }>
+                  {new Date(feiraAtual.data) < now
+                    ? "Encerrada"
+                    : vagasRestantes === 0
+                      ? "Esgotada"
+                      : "Aberta"}
                 </Badge>
               </div>
               <p className="mt-2 text-3xl font-bold tracking-tight">
@@ -215,24 +286,24 @@ function FeirasPage() {
                   <TableHead>Categoria</TableHead>
                   <TableHead>Última alocação</TableHead>
                   <TableHead>Tempo de inatividade</TableHead>
+                  <TableHead>Último Curso</TableHead>
+                  <TableHead>Score de Rodízio</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ranking.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
                       {feiras.length === 0 ? "Nenhuma feira cadastrada." : "Nenhum artesão aprovado encontrado."}
                     </TableCell>
                   </TableRow>
                 ) : (
                   ranking.map((r) => {
-                    const prioridade = r.posicao <= 3;
-                    const nuncaParticipou = r.diasInativo >= 9007199254740991; // Long.MAX_VALUE mapped from Java
                     return (
-                      <TableRow key={r.id} className={prioridade ? "bg-success/[0.04]" : ""}>
+                      <TableRow key={r.id}>
                         <TableCell>
-                          <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${prioridade ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"}`}>
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold bg-muted text-muted-foreground">
                             {r.posicao}
                           </div>
                         </TableCell>
@@ -241,27 +312,57 @@ function FeirasPage() {
                           {r.nomeMarca && <div className="text-xs text-muted-foreground">{r.nomeMarca}</div>}
                         </TableCell>
                         <TableCell className="text-sm">{r.categoriaProduto ?? r.segmento ?? "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {nuncaParticipou
-                            ? <span className="text-success font-medium">Nunca participou</span>
-                            : r.ultimaAlocacao
-                              ? new Date(r.ultimaAlocacao).toLocaleDateString("pt-BR")
-                              : "—"}
+                        <TableCell className="text-sm">
+                          {r.dataFeiraFutura ? (
+                            <span className="font-semibold text-primary">
+                              Participará em {new Date(r.dataFeiraFutura).toLocaleDateString("pt-BR")}
+                            </span>
+                          ) : r.dataAlocacao ? (
+                            <span className="font-medium text-foreground text-sm">
+                              {new Date(r.dataAlocacao).toLocaleDateString("pt-BR")}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60 italic">Nunca participou</span>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <span className={`text-sm font-semibold ${prioridade ? "text-success" : "text-foreground"}`}>
-                            {nuncaParticipou ? "—" : `${r.diasInativo} dias`}
+                          <span className="text-sm font-semibold text-foreground">
+                            {r.dataAlocacao ? (
+                              `${r.diasInativo} dias`
+                            ) : r.dataFeiraFutura ? (
+                              "0 dias"
+                            ) : (
+                              "—"
+                            )}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {r.dataUltimoCurso ? (
+                            <span className="text-sm font-semibold text-foreground">
+                              {formatRelativeDate(r.dataUltimoCurso)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60 italic">Nenhum curso concluído</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-mono font-bold text-primary">
+                            {r.scoreJustica.toFixed(1)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
                             size="sm"
                             onClick={() => handleAlocar(r.id, r.nome)}
-                            disabled={r.jaAlocadoNaFeira || vagasRestantes <= 0 || actionLoading}
+                            disabled={r.jaAlocadoNaFeira || vagasRestantes <= 0 || actionLoading || !feiraAtual || new Date(feiraAtual.data) < now}
                             variant={r.jaAlocadoNaFeira ? "outline" : "default"}
                           >
                             <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                            {r.jaAlocadoNaFeira ? "Alocado" : "Alocar na Feira"}
+                            {!feiraAtual || new Date(feiraAtual.data) < now
+                              ? "Encerrada"
+                              : r.jaAlocadoNaFeira
+                                ? "Alocado"
+                                : "Alocar na Feira"}
                           </Button>
                         </TableCell>
                       </TableRow>

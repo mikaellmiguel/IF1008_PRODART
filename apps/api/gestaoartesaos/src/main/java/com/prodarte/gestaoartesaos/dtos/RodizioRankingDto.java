@@ -18,5 +18,8 @@ public record RodizioRankingDto(
     long diasInativo,
     double scoreJustica,
     int posicao,
-    boolean jaAlocadoNaFeira
+    boolean jaAlocadoNaFeira,
+    LocalDateTime dataAlocacao,
+    LocalDateTime dataFeiraFutura,
+    LocalDateTime dataUltimoCurso
 ) {}
