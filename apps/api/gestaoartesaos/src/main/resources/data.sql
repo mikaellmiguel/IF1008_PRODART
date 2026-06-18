@@ -14,6 +14,13 @@ INSERT INTO tb_usuarios (id, nome, email, senha, telefone)
 SELECT 1, 'Gestor Prodarte Principal', 'gestor@prodarte.com', '$2a$10$TMxK9prKz/wqkGhByYdn0u9dxAC638g4dZlNApPNHaZDHpfRKiIDy', '5581900000001'
 WHERE NOT EXISTS (SELECT 1 FROM tb_usuarios WHERE id = 1);
 
+INSERT INTO tb_usuarios (id, nome, email, senha, telefone)
+SELECT 2, 'Gestor Prodarte - Curadoria', 'curadoria@prodarte.com', '$2a$10$TMxK9prKz/wqkGhByYdn0u9dxAC638g4dZlNApPNHaZDHpfRKiIDy', '5581900000002'
+WHERE NOT EXISTS (SELECT 1 FROM tb_usuarios WHERE id = 2);
+
+INSERT INTO tb_usuarios (id, nome, email, senha, telefone)
+SELECT 3, 'Gestor Prodarte - Administrador', 'administrador@prodarte.com', '$2a$10$TMxK9prKz/wqkGhByYdn0u9dxAC638g4dZlNApPNHaZDHpfRKiIDy', '5581900000003'
+WHERE NOT EXISTS (SELECT 1 FROM tb_usuarios WHERE id = 3);
 
 -- Associação dos Gestores com a Role ADMIN
 INSERT INTO tb_usuario_roles (usuario_id, role_id)
