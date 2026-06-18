@@ -55,7 +55,7 @@ function DashboardPage() {
 
   // Filtros locais (busca textual é local, filtros estruturados também)
   const filtered = useMemo(() => {
-    return artesaos.filter((a) => {
+    const list = artesaos.filter((a) => {
       if (
         busca &&
         !a.nome.toLowerCase().includes(busca.toLowerCase()) &&
@@ -69,6 +69,7 @@ function DashboardPage() {
       if (statusFilter !== "all" && a.statusCuradoria !== statusFilter) return false;
       return true;
     });
+    return [...list].sort((a, b) => a.id - b.id);
   }, [artesaos, busca, segmentoFilter, categoriaFilter, bairroFilter, meiFilter, statusFilter]);
 
   // Categorias extraídas dinamicamente

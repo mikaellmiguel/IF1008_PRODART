@@ -74,7 +74,7 @@ function MensageriaPage() {
   }, [artesaos]);
 
   const artesaoCandidates = useMemo(() => {
-    return artesaos.filter((a) => {
+    const list = artesaos.filter((a) => {
       if (selectedFairs.length > 0) {
         const alocadoNaFeira = (a.alocacoes || []).some(
           (al) => al.status === "ALOCADO" && al.feira && selectedFairs.includes(al.feira.id)
@@ -93,6 +93,7 @@ function MensageriaPage() {
       }
       return true;
     });
+    return [...list].sort((a, b) => a.id - b.id);
   }, [artesaos, feiras, selectedFairs, selectedStatuses, selectedCategories]);
 
   const artesaoResults = useMemo(() => {

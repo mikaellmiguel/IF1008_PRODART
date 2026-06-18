@@ -8,10 +8,10 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root.tsx'
-import { Route as MensageriaRouteImport } from './routes/mensageria.tsx'
-import { Route as FeirasRouteImport } from './routes/feiras.tsx'
-import { Route as DashboardRouteImport } from './routes/dashboard.tsx'
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as MensageriaRouteImport } from './routes/mensageria'
+import { Route as FeirasRouteImport } from './routes/feiras'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 
 const MensageriaRoute = MensageriaRouteImport.update({

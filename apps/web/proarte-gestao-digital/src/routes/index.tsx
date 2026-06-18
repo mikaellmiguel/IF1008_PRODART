@@ -139,9 +139,6 @@ function LoginPage() {
                 <input type="checkbox" className="h-3.5 w-3.5 rounded border-input" />
                 Lembrar neste dispositivo
               </label>
-              <a className="font-medium text-primary hover:underline" href="#">
-                Esqueci a senha
-              </a>
             </div>
 
             <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={loading}>
