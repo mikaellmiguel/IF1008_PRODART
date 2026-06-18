@@ -8,12 +8,12 @@ import {defineConfig} from "vite";
 import {tanstackStart} from "@tanstack/react-start/plugin/vite";
 import netlify from "@netlify/vite-plugin-tanstack-start";
 import viteReact from "@vitejs/plugin-react";
-import tawindcss from "@tailwindcss/vite";
 import path from "path";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [
-    tawindcss(),
+    tailwindcss(),
     tanstackStart(),
     netlify(), 
     viteReact(),
