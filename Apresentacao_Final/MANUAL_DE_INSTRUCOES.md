@@ -256,7 +256,7 @@ Se preferir rodar os contêineres manualmente sem compose:
 ### 7.1. Como fazer login na primeira execução?
 O banco é populado automaticamente via script `data.sql`. O usuário gestor inicial pré-configurado é:
 * **E-mail:** `gestor@prodarte.com`
-* **Senha:** `senha123` (esta senha é a correspondente em texto claro para o hash criptografado `$2a$10$TMxK9prKz/wqkGhByYdn0u9dxAC638g4dZlNApPNHaZDHpfRKiIDy` inserido no banco).
+* **Senha:** `Teste123` (esta senha é a correspondente em texto claro para o hash criptografado `$2a$10$TMxK9prKz/wqkGhByYdn0u9dxAC638g4dZlNApPNHaZDHpfRKiIDy` inserido no banco).
 
 Você também pode registrar outros usuários gestores fazendo uma requisição `POST` pública para o endpoint `/usuario`.
 
