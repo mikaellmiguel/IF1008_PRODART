@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Lock, Mail, Palette, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -145,6 +145,14 @@ function LoginPage() {
               {loading ? "Validando credenciais..." : "Acessar Painel"}
             </Button>
           </form>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Ao acessar o painel, você concorda com as diretrizes da nossa{" "}
+            <Link to="/privacy" className="font-semibold text-primary underline hover:text-primary/80 transition-colors">
+              Política de Privacidade
+            </Link>
+            .
+          </p>
 
           <p className="mt-6 text-center text-[11px] text-muted-foreground">
             v1.0 · PRODARTE © {new Date().getFullYear()} · Secretaria do Trabalho e Qualificação Profissional · Prefeitura do Recife

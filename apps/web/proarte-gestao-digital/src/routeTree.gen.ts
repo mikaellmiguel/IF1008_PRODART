@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MensageriaRouteImport } from './routes/mensageria'
 import { Route as FeirasRouteImport } from './routes/feiras'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MensageriaRoute = MensageriaRouteImport.update({
   id: '/mensageria',
   path: '/mensageria',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/feiras': typeof FeirasRoute
   '/mensageria': typeof MensageriaRoute
+  '/privacy': typeof PrivacyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/feiras': typeof FeirasRoute
   '/mensageria': typeof MensageriaRoute
+  '/privacy': typeof PrivacyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/feiras': typeof FeirasRoute
   '/mensageria': typeof MensageriaRoute
+  '/privacy': typeof PrivacyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/feiras' | '/mensageria'
+  fullPaths: '/' | '/dashboard' | '/feiras' | '/mensageria' | '/privacy'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/feiras' | '/mensageria'
-  id: '__root__' | '/' | '/dashboard' | '/feiras' | '/mensageria'
+  to: '/' | '/dashboard' | '/feiras' | '/mensageria' | '/privacy'
+  id: '__root__' | '/' | '/dashboard' | '/feiras' | '/mensageria' | '/privacy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   FeirasRoute: typeof FeirasRoute
   MensageriaRoute: typeof MensageriaRoute
+  PrivacyRoute: typeof PrivacyRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mensageria': {
       id: '/mensageria'
       path: '/mensageria'
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   FeirasRoute: FeirasRoute,
   MensageriaRoute: MensageriaRoute,
+  PrivacyRoute: PrivacyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
